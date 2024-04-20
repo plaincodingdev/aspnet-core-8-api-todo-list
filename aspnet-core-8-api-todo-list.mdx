@@ -1,0 +1,325 @@
+# Getting Started with ASP.NET Core 8 Web API and Docker
+
+Welcome to this step-by-step tutorial, where you'll learn how to develop a controller-based web API using ASP.NET Core 8, and then deploy it using Docker. This guide is designed for beginners and intermediate developers interested in building and containerizing web APIs. By the end of this tutorial, you will have created a simple yet functional to-do list API.
+
+## Prerequisites
+
+Before we begin, please make sure you have the following software installed on your system. These tools are essential for developing and running the application we will build:
+
+- **.NET Core 8.0 SDK:** This software development kit allows you to develop applications using ASP.NET Core 8. Download it from the .NET official site. (https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- **Docker:** Docker is a platform for developing, shipping, and running applications inside containers. Download Docker from Docker's official site. (https://www.docker.com/)
+- **Visual Studio Code:** This is a lightweight but powerful source code editor which runs on your desktop. It comes with support for ASP.NET C# development and debugging. Download it from Visual Studio Code official site. (https://code.visualstudio.com/)
+
+## Creating a New Project
+
+To create a project that is structured to use controllers—a common setup for APIs—use the following command:
+
+```bash
+dotnet new webapi --use-controllers -o aspnet-core-8-todo-list-api
+```
+
+This command creates a new web API project in a folder named `aspnet-core-8-todo-list-api`. To start the project, first move into the project directory using the `cd` command, and then execute `dotnet run`:
+
+```bash
+cd aspnet-core-8-todo-list-api
+dotnet run
+```
+
+When you run the above command, your new web API will start up. Initially, this project includes a sample endpoint that provides a weather forecast, which we will later modify to serve our to-do list application.
+
+While the application is running, you can interact with the API through Swagger UI. This tool provides a web-based user interface that allows you to visualize and interact with the API's resources without having to write any additional code. To access it, open your web browser and go to `https://localhost:5277/swagger/index.html`.
+
+The port number `5277` might differ based on your project's configuration. If this URL does not work, check the console output when you start the application as it indicates the correct port. You can also check the `launchSettings.json` file located in the `Properties` folder of your project to verify the port settings.
+
+## Creating a Model Class
+
+Models in an ASP.NET Core application represent the data that the application manipulates. These are typically classes with properties that correspond to the data the application stores and retrieves. For our to-do list application, we'll define a model to represent a todo item.
+
+First, create a new folder in your project named `Models`. This folder will organize your data model classes.
+
+Inside the `Models` folder, add a new class file named `ToDo.cs`. This class will define the properties of a todo item. Here’s how you can define it:
+
+```csharp
+public class ToDo
+{
+  public long Id { get; set; } = 1; // Unique identifier for the todo item
+  public string Name { get; set; } = "Default ToDo Name"; // Descriptive name of the todo item
+  public bool IsDone { get; set; } = false; // Status indicating whether the todo is completed
+}
+```
+
+The default values provided in the class are useful for testing and initial runs of your application. They ensure that your model objects are not created with null or undefined values, which can help avoid runtime errors during the initial development phase.
+
+By organizing your model definitions this way, you keep your application's architecture clean and maintainable, and you ensure that the core data structures are easy to access and modify as your project grows or changes.
+
+## Creating Data Transfer Objects (DTOs)
+
+Data Transfer Objects (DTOs) play a crucial role in data handling and API design by encapsulating data to be transferred between different layers of an application. Using DTOs instead of domain models directly in your API responses and requests helps to maintain separation of concerns, ensuring that internal changes to the domain model do not directly affect clients.
+
+For our to-do list application, we'll use DTOs to define the data structure for creating and updating todo items. This approach allows us to customize the data being sent and received, and potentially omit or add properties without affecting the database schema.
+
+Start by creating a new folder in your project named `DTOs`. This folder will contain all the data transfer object classes, helping to keep your project organized.
+
+Inside the `DTOs` folder, create two new classes, `AddToDoDto.cs` and `UpdateToDoDto.cs`, to handle the creation and updating of todo items.
+
+The `AddToDoDto` class is used when new todo items are added through the API. It includes the necessary properties that the client can set when creating a new todo.
+
+```csharp
+public class AddToDoDto
+{
+  public string Name { get; set; } = "Default ToDo Name"; // Initial default name for a new todo item
+  public bool IsDone { get; set; } = false; // Initial status of the todo, default is not completed
+}
+```
+
+The `UpdateToDoDto` class is used for updating existing todo items. Similar to AddToDoDto, but it may include additional properties in the future as needed for updates.
+
+```csharp
+public class UpdateToDoDto
+{
+  public string Name { get; set; } = "Default ToDo Name"; // Default name to be updated if necessary
+  public bool IsDone { get; set; } = false; // Status to be updated
+}
+```
+
+Using DTOs like this not only helps in managing data flow within your application but also protects your API from potential over-posting vulnerabilities where clients could inadvertently or maliciously set properties that should not be changed. This setup ensures that your application remains robust, secure, and easy to maintain.
+
+## Creating a Service to Manage Todo Items
+
+Services in an ASP.NET Core application are central to handling business logic. They abstract the operations from the controller, making your application cleaner and easier to manage. For our todo list application, we will create a service that manages the todo items using an in-memory list as the storage mechanism. This approach is simple and suitable for demonstration purposes but can be replaced with a database for production applications.
+
+Start by defining an interface for the todo service. This interface will declare the operations that our service must implement. Create a new file named `IToDoService.cs` in a folder called `Services`:
+
+```csharp
+public interface IToDoService
+{
+  ToDo AddToDo(AddToDoDto addToDo);
+  ToDo GetToDo(long id);
+  List<ToDo> GetToDos();
+  void DeleteToDo(long id);
+  void UpdateToDo(long id, UpdateToDoDto updateToDo);
+}
+```
+
+Next, implement this interface in a class named `ToDoService.cs` within the same `Services` folder. This class will handle the actual logic for managing todo items:
+
+```csharp
+public class ToDoService : IToDoService
+{
+  private List<ToDo> _toDos; // Store ToDos in memory
+
+  public ToDoService()
+  {
+    // Initialize the list with a dummy ToDo
+    _toDos = new List<ToDo>
+    {
+        new ToDo { Id = 1, Name = "Do the dishes", IsDone = false }
+    };
+  }
+
+  public ToDo AddToDo(AddToDoDto addToDo)
+  {
+    var newToDo = new ToDo
+    {
+      Id = _toDos.Max(toDo => toDo.Id) + 1,
+      Name = addToDo.Name,
+      IsDone = addToDo.IsDone
+    };
+
+    _toDos.Add(newToDo);
+
+    return newToDo;
+  }
+
+  public ToDo GetToDo(long id)
+  {
+    return _toDos.FirstOrDefault(toDo => toDo.Id == id);
+  }
+
+  public List<ToDo> GetToDos()
+  {
+    return _toDos;
+  }
+
+  public void DeleteToDo(long id)
+  {
+    var toDo = GetToDo(id);
+    if (toDo != null)
+    {
+      _toDos.Remove(toDo);
+    }
+  }
+
+  public void UpdateToDo(long id, UpdateToDoDto updatedToDo)
+  {
+    var existingToDo = GetToDo(id);
+    if (existingToDo != null)
+    {
+      existingToDo.Name = updatedToDo.Name;
+      existingToDo.IsDone = updatedToDo.IsDone;
+    }
+  }
+}
+```
+
+By structuring your service this way, you ensure that the application's business logic is kept separate from other concerns, such as data presentation and API routing. This makes the service easily testable and maintainable.
+
+## Creating a Controller for Todo Operations
+
+Controllers in ASP.NET Core handle incoming HTTP requests and return responses. They are a crucial part of the MVC (Model-View-Controller) architecture. In this tutorial, we'll create a controller to manage todo items using the service we defined earlier.
+
+In your project, create a new folder named `Controllers` if it doesn't already exist. Within this folder, add a new class file named `TodoController.cs`. This controller will implement all the necessary actions to interact with todo items.
+
+The controller should use constructor injection to access the `IToDoService` service, which contains the logic for managing todo items. Here is how you can define the controller:
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class ToDosController : ControllerBase
+{
+  private readonly IToDoService _toDoService;
+
+  public ToDosController(IToDoService toDoService)
+  {
+    _toDoService = toDoService; // Constructor injection to manage toDo
+  }
+
+  // Get all ToDos
+  [HttpGet]
+  public async Task<ActionResult<IEnumerable<ToDo>>> GetToDos()
+  {
+    return _toDoService.GetToDos();
+  }
+
+  // Get a ToDo by id
+  [HttpGet("{id}")]
+  public async Task<ActionResult<ToDo>> GetToDo(long id)
+  {
+    var toDo = _toDoService.GetToDo(id);
+
+    if (toDo == null)
+    {
+      return NotFound();
+    }
+
+    return toDo;
+  }
+
+  // Add a new ToDo
+  [HttpPost]
+  public async Task<ActionResult<ToDo>> AddToDo(AddToDoDto addToDo)
+  {
+    var toDo = _toDoService.AddToDo(addToDo);
+
+    return CreatedAtAction(nameof(AddToDo), new { id = toDo.Id }, toDo);
+  }
+
+  // Delete a ToDo by id
+  [HttpDelete("{id}")]
+  public async Task<IActionResult> DeleteToDo(long id)
+  {
+    var toDo = _toDoService.GetToDo(id);
+
+    if (toDo == null)
+    {
+      return NotFound();
+    }
+
+    _toDoService.DeleteToDo(id);
+
+    return NoContent();
+  }
+
+  // Update a ToDo by id
+  [HttpPut("{id}")]
+  public async Task<IActionResult> UpdateToDo(long id, UpdateToDoDto updateToDo)
+  {
+    var existingToDo = _toDoService.GetToDo(id);
+
+    if (existingToDo == null)
+    {
+      return NotFound();
+    }
+
+    _toDoService.UpdateToDo(id, updateToDo);
+
+    return NoContent();
+  }
+}
+```
+
+Before running your application, ensure the todo service is registered in the `Startup.cs`. This registration enables dependency injection, which ASP.NET Core uses to manage services:
+
+```csharp
+builder.Services.AddSingleton<IToDoService, ToDoService>(); // Register our custom service with the lifetime of the application
+```
+
+This comprehensive setup ensures that your controller is not only functional but also adheres to best practices for modern API development, making it scalable and maintainable.
+
+## Running the Application
+
+Now that we've set up our ASP.NET Core Web API, it’s time to see it in action. Running the application is straightforward and provides a quick way to verify that everything is working as expected.
+
+Open your command prompt or terminal, navigate to the root directory of your project where the .csproj file is located, and run the following command:
+
+```bash
+dotnet run
+```
+
+Once the application is running, you can interact with it using the Swagger UI. Swagger provides a web-based interface for testing API endpoints without the need for additional tools like Postman. To access Swagger UI, open your web browser and navigate to `http://localhost:5277/swagger/index.html`.
+
+In the Swagger UI, you will see a list of all the API endpoints defined in your controller. Each endpoint can be expanded to show request parameters and the "Try it out" feature allows you to make requests directly from your browser. Test each endpoint by entering the required parameters and examining the responses. This step is crucial for ensuring that your API behaves as expected.
+
+## Dockerizing the Application
+
+Once you've thoroughly tested your application and confirmed that it functions as expected, the next step is to prepare it for deployment using Docker. This process involves creating a Docker image that encapsulates your application and its environment.
+
+Start by creating a Dockerfile in the root of your project. This file contains the instructions for building the Docker image. Add the following content to your Dockerfile:
+
+```Dockerfile
+# Use SDK image for the build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+WORKDIR /App
+
+# Copy everything
+COPY . ./
+# Restore as distinct layers
+RUN dotnet restore
+# Build and publish a release
+RUN dotnet publish -c Release -o out
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# ENV ASPNETCORE_HTTP_PORTS=5277
+# ENV ASPNETCORE_URLS=http://*:5277
+WORKDIR /App
+COPY --from=build-env /App/out .
+
+# Expose the port the app runs on
+EXPOSE 5277
+ENV ASPNETCORE_URLS=http://*:5277
+
+ENTRYPOINT ["dotnet", "aspnet-core-8-todo-list-api.dll"]
+```
+
+Open your terminal and navigate to the directory containing your Dockerfile. Build the Docker image with the following command:
+
+```bash
+docker build -t aspnet-core-8-todo-list-api .
+```
+
+This command tags the built image with a name so it can be easily referenced later.
+
+After the image is built, you can run it as a container. Execute the following command to start the container:
+
+```bash
+docker run --rm -it -p 5277:5277 -e ASPNETCORE_ENVIRONMENT=Development aspnet-core-8-todo-list-api
+```
+
+This command sets up the container to remove itself after stopping (--rm) and maps port 5277 from your local machine to the container, ensuring you can access the application as if it were running locally.
+
+Your application is now running inside a Docker container and can be accessed through your browser at `http://localhost:5277/swagger/index.html`.
+
+## Closing Thoughts
+
+Throughout this tutorial, you've learned the steps to create a fully functional controller-based web API using ASP.NET Core 8. You've gone through the process of setting up a development environment, defining a data model and DTOs, handling business logic with services, and controlling the flow of data with controllers. Additionally, you've explored running the application locally and encapsulating it within a Docker container for easy deployment.

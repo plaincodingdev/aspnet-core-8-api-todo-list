@@ -1,0 +1,6 @@
+@aspnet_core_8_todo_list_api_HostAddress = http://localhost:5277
+
+GET {{aspnet_core_8_todo_list_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
