@@ -18,11 +18,17 @@ public class ToDoService : IToDoService
 
   public ToDo AddToDo(AddToDoDto addToDo)
   {
+    long newId = 0;
+    if (_toDos.Count > 0)
+    {
+      newId = _toDos.Max(toDo => toDo.Id) + 1;
+    }
+
     var newToDo = new ToDo
     {
-      Id = _toDos.Max(toDo => toDo.Id) + 1,
+      Id = newId,
       Name = addToDo.Name,
-      IsDone = addToDo.IsDone
+      IsDone = false
     };
 
     _toDos.Add(newToDo);

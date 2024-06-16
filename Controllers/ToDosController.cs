@@ -10,16 +10,19 @@ namespace aspnet_core_8_todo_list_api.Controllers;
 public class ToDosController : ControllerBase
 {
   private readonly IToDoService _toDoService;
+  private readonly ILogger<ToDosController> _logger;
 
-  public ToDosController(IToDoService toDoService)
+  public ToDosController(IToDoService toDoService, ILogger<ToDosController> logger)
   {
     _toDoService = toDoService; // Constructor injection to manage toDo
+    _logger = logger; // Constructor injection to manage logging
   }
 
   // Get all ToDos
   [HttpGet]
   public async Task<ActionResult<IEnumerable<ToDo>>> GetToDos()
   {
+    _logger.LogInformation("API: GetToDos called");
     return _toDoService.GetToDos();
   }
 
@@ -27,6 +30,8 @@ public class ToDosController : ControllerBase
   [HttpGet("{id}")]
   public async Task<ActionResult<ToDo>> GetToDo(long id)
   {
+    _logger.LogInformation($"API: GetToDo called with id {id}");
+
     var toDo = _toDoService.GetToDo(id);
 
     if (toDo == null)
@@ -41,6 +46,8 @@ public class ToDosController : ControllerBase
   [HttpPost]
   public async Task<ActionResult<ToDo>> AddToDo(AddToDoDto addToDo)
   {
+    _logger.LogInformation($"API: AddToDo called with ToDo Name {addToDo.Name}");
+
     var toDo = _toDoService.AddToDo(addToDo);
 
     return CreatedAtAction(nameof(AddToDo), new { id = toDo.Id }, toDo);
@@ -50,6 +57,8 @@ public class ToDosController : ControllerBase
   [HttpDelete("{id}")]
   public async Task<IActionResult> DeleteToDo(long id)
   {
+    _logger.LogInformation($"API: DeleteToDo called with id {id}");
+
     var toDo = _toDoService.GetToDo(id);
 
     if (toDo == null)
@@ -66,6 +75,8 @@ public class ToDosController : ControllerBase
   [HttpPut("{id}")]
   public async Task<IActionResult> UpdateToDo(long id, UpdateToDoDto updateToDo)
   {
+    _logger.LogInformation($"API: UpdateToDo called with id {id}");
+
     var existingToDo = _toDoService.GetToDo(id);
 
     if (existingToDo == null)
