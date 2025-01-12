@@ -24,7 +24,7 @@ docker build -t aspnet-core-8-todo-list-api .
 After the image has been built, run the container with the following command:
 
 ```bash
-docker run --rm -it -p 5277:5277 -e ASPNETCORE_ENVIRONMENT=Development aspnet-core-8-todo-list-api
+docker run --rm -it --name todo-api -p 5277:5277 -e ASPNETCORE_ENVIRONMENT=Development aspnet-core-8-todo-list-api
 ```
 
 
@@ -47,11 +47,17 @@ dotnet tool install --global dotnet-ef
 dotnet add package Microsoft.EntityFrameworkCore --version 8.0.8
 dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.8
 dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 8.0.4
-
 ```
 
+Set up database
 ```bash
+# Create migration
 dotnet ef migrations add InitialMigration
+# Apply migration
 dotnet ef database update
 ```
 
+docker-compose
+```bash
+docker compose up -d --build 
+```

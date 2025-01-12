@@ -1,0 +1,36 @@
+services:
+  todo:
+    build:
+      context: ../react-18-todo-list
+      dockerfile: Dockerfile
+    container_name: todo
+    ports:
+      - 5173:5173
+
+  todo-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todo-api
+    ports:
+      - 5277:5277
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16.4
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - 8888:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
