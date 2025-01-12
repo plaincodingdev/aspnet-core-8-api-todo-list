@@ -5,9 +5,9 @@ namespace aspnet_core_8_todo_list_api.Services.ToDoService;
 
 public interface IToDoService
 {
-  ToDo AddToDo(AddToDoDto addToDo);
-  ToDo GetToDo(long id);
-  List<ToDo> GetToDos();
-  void DeleteToDo(long id);
-  void UpdateToDo(long id, UpdateToDoDto updateToDo);
+  Task<ToDo> AddToDo(AddToDoDto addToDo);
+  Task<ToDo> GetToDo(long id);
+  Task<List<ToDo>> GetToDos();
+  Task DeleteToDo(long id);
+  Task UpdateToDo(long id, UpdateToDoDto updateToDo);
 }

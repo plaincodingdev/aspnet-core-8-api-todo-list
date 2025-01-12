@@ -1,15 +1,22 @@
-using aspnet_core_8_todo_list_api.Services.ToDoService;
+global using Microsoft.EntityFrameworkCore;
+global using aspnet_core_8_todo_list_api.Services.ToDoService;
+global using aspnet_core_8_todo_list_api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// Register the DataContext with postgresql
+builder.Services.AddDbContext<DataContext>(options =>
+  options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<IToDoService, ToDoService>(); // Register our custom service with the lifetime of the application
+// Register our custom service with the lifetime of the request
+builder.Services.AddScoped<IToDoService, ToDoService>();
 
 var app = builder.Build();
 

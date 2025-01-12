@@ -23,7 +23,7 @@ public class ToDosController : ControllerBase
   public async Task<ActionResult<IEnumerable<ToDo>>> GetToDos()
   {
     _logger.LogInformation("API: GetToDos called");
-    return _toDoService.GetToDos();
+    return await _toDoService.GetToDos();
   }
 
   // Get a ToDo by id
@@ -32,7 +32,7 @@ public class ToDosController : ControllerBase
   {
     _logger.LogInformation($"API: GetToDo called with id {id}");
 
-    var toDo = _toDoService.GetToDo(id);
+    var toDo = await _toDoService.GetToDo(id);
 
     if (toDo == null)
     {
@@ -48,7 +48,7 @@ public class ToDosController : ControllerBase
   {
     _logger.LogInformation($"API: AddToDo called with ToDo Name {addToDo.Name}");
 
-    var toDo = _toDoService.AddToDo(addToDo);
+    var toDo = await _toDoService.AddToDo(addToDo);
 
     return CreatedAtAction(nameof(AddToDo), new { id = toDo.Id }, toDo);
   }
@@ -59,14 +59,14 @@ public class ToDosController : ControllerBase
   {
     _logger.LogInformation($"API: DeleteToDo called with id {id}");
 
-    var toDo = _toDoService.GetToDo(id);
+    var toDo = await _toDoService.GetToDo(id);
 
     if (toDo == null)
     {
       return NotFound();
     }
 
-    _toDoService.DeleteToDo(id);
+    await _toDoService.DeleteToDo(id);
 
     return NoContent();
   }
@@ -77,14 +77,14 @@ public class ToDosController : ControllerBase
   {
     _logger.LogInformation($"API: UpdateToDo called with id {id}");
 
-    var existingToDo = _toDoService.GetToDo(id);
+    var existingToDo = await _toDoService.GetToDo(id);
 
     if (existingToDo == null)
     {
       return NotFound();
     }
 
-    _toDoService.UpdateToDo(id, updateToDo);
+    await _toDoService.UpdateToDo(id, updateToDo);
 
     return NoContent();
   }
