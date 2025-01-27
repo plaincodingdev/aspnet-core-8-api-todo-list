@@ -7,7 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // Get connection string
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+string connectionString =
+  $"Host={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_HOST")}; " +
+  $"Port={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_PORT")}; " +
+  $"Database={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_DATABASE")}; " +
+  $"Username={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_USER")}; " +
+  $"Password={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_PASSWORD")};";
 Console.WriteLine($"Connection string: {connectionString}");
 
 // Register the DataContext with postgresql

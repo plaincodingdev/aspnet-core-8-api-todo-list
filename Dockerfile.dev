@@ -1,6 +1,12 @@
 # Use SDK image for the build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /App
+
+# Install dotnet-ef globally
+RUN dotnet tool install -g dotnet-ef
+
+# Set PATH to include dotnet tools
+ENV PATH="$PATH:/root/.dotnet/tools"
 
 # Copy everything
 COPY . ./
@@ -8,12 +14,6 @@ COPY . ./
 RUN dotnet restore
 # Build and publish a release
 RUN dotnet publish -c Release -o out
-
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-
-WORKDIR /App
-COPY --from=build-env /App/out .
 
 # Expose the port the app runs on
 EXPOSE 5277
@@ -27,4 +27,4 @@ ENV ASPNETCORE_POSTGRES_DATABASE=postgres
 ENV ASPNETCORE_POSTGRES_USER=postgres
 ENV ASPNETCORE_POSTGRES_PASSWORD=postgres
 
-ENTRYPOINT ["dotnet", "aspnet-core-8-todo-list-api.dll"]
+ENTRYPOINT ["dotnet", "run"]
