@@ -32,38 +32,3 @@ docker run --rm -it --name todo-api -p 5277:5277 -e ASPNETCORE_ENVIRONMENT=Devel
 # Development image
 docker run --rm -it --name todo-api -p 5277:5277 -e ASPNETCORE_ENVIRONMENT=Development aspnet-core-8-api-todo-list:latest-dev
 ```
-
-
-# Articel
-
-Object relational mapping
-
-Code first migration
-
-
-
-Create database
-```bash
-docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -p 5432:5432 -d postgres:16.4
-```
-
-Install packages
-```bash
-dotnet tool install --global dotnet-ef
-dotnet add package Microsoft.EntityFrameworkCore --version 8.0.8
-dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.8
-dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 8.0.4
-```
-
-Set up database
-```bash
-# Create migration
-dotnet ef migrations add InitialMigration
-# Apply migration
-dotnet ef database update
-```
-
-docker-compose
-```bash
-docker compose up -d --build 
-```

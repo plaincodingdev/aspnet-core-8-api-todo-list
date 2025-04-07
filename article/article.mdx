@@ -1,0 +1,224 @@
+---
+title: "Extending ASP.NET Core REST API with PostgreSQL and Docker Compose"
+excerpt: "Learn how to seamlessly integrate PostgreSQL with your ASP.NET Core REST API and orchestrate services using Docker Compose."
+date: "2025-04-06"
+author: "Martin"
+readingTime: "7"
+tags: ["ASP.NET", "REST API", "Docker", "C#", "Web API", "Entity Framework", "PostgreSQL"]
+---
+
+## Prerequisites
+
+Before beginning, ensure the following software is installed on your system. These tools are necessary for developing and running the application:
+
+- **.NET Core SDK:** Enables application development with ASP.NET Core.
+- **Docker:** A platform for building, shipping, and running applications in containers.
+- **Source Code:** Available on [GitHub]().
+
+## Extending the Existing Project
+
+In our [previous article](), we created a simple REST API with ASP.NET Core using in-memory data storage. Now, we'll enhance the project by integrating PostgreSQL as our database. Additionally, we'll use Docker Compose to orchestrate our backend, database, and the previously created [client application]().
+
+## Adding Enitity Framework Core
+
+Entity Framework (EF) Core is an Object-Relational Mapper (ORM) simplifying database interactions using .NET objects.
+
+Install the required packages using the following commands:
+```bash
+dotnet tool install --global dotnet-ef
+dotnet add package Microsoft.EntityFrameworkCore --version 8.0.8
+dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.8
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 8.0.4
+```
+
+Create a `DataContext` class `DataContext.cs` for database interactions:
+```csharp
+public class DataContext : DbContext
+{
+  public DataContext(DbContextOptions<DataContext> options) : base(options)
+  {
+  }
+
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
+    // Seed the database with migration
+    modelBuilder.Entity<ToDo>().HasData(
+      new ToDo { Id = 1, Name = "Do the dishes", IsDone = false },
+      new ToDo { Id = 2, Name = "Walk the dog", IsDone = false },
+      new ToDo { Id = 3, Name = "Buy groceries", IsDone = false }
+    );
+  }
+
+  public DbSet<ToDo> ToDos { get; set; }
+}
+```
+The `DbSet<ToDo>` represents the table in your database, while `OnModelCreating` seeds initial data.
+
+
+Enhance the `ToDo` model with annotations:
+```csharp
+public class ToDo
+{
+  [Column("id")]
+  public long Id { get; set; } // Unique identifier for the todo item
+
+  [Column("name")]
+  [MaxLength(100)]
+  public string Name { get; set; } // Descriptive name of the todo item
+
+  [Column("is_done")]
+  public bool IsDone { get; set; } // Status indicating whether the todo is completed
+}
+```
+
+To configure the database connection, add the connection string to `Program.cs` using environment variables:
+```csharp
+// Get connection string
+string connectionString =
+  $"Host={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_HOST")}; " +
+  $"Port={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_PORT")}; " +
+  $"Database={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_DATABASE")}; " +
+  $"Username={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_USER")}; " +
+  $"Password={Environment.GetEnvironmentVariable("ASPNETCORE_POSTGRES_PASSWORD")};";
+Console.WriteLine($"Connection string: {connectionString}");
+
+// Register the DataContext with postgresql
+builder.Services.AddDbContext<DataContext>(options =>
+  options.UseNpgsql(connectionString));
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Register our custom service with the lifetime of the request
+builder.Services.AddScoped<IToDoService, ToDoService>();
+```
+
+## Switching to Asynchronous Programming
+
+Database operations should be non-blocking. Update your `IToDoService` interface to asynchronous methods:
+```csharp
+public interface IToDoService
+{
+  Task<ToDo> AddToDo(AddToDoDto addToDo);
+  Task<ToDo> GetToDo(long id);
+  Task<List<ToDo>> GetToDos();
+  Task DeleteToDo(long id);
+  Task UpdateToDo(long id, UpdateToDoDto updateToDo);
+}
+```
+
+Implement asynchronous methods in your `ToDoService` class:
+```csharp
+public class ToDoService : IToDoService
+{
+  private List<ToDo> _toDos; // Store ToDos in memory
+  private DataContext _context; // Store ToDos in database
+
+  public ToDoService(DataContext context)
+  {
+    _context = context;
+  }
+
+  public async Task<ToDo> AddToDo(AddToDoDto addToDo)
+  {
+    var newToDo = new ToDo
+    {
+      Name = addToDo.Name,
+      IsDone = false
+    };
+    _context.ToDos.Add(newToDo);
+    await _context.SaveChangesAsync();
+    var latestToDo = await _context.ToDos.OrderByDescending(toDo => toDo.Id).FirstOrDefaultAsync();
+    return latestToDo;
+  }
+}
+```
+
+Update controller methods accordingly:
+```csharp
+// Add a new ToDo
+[HttpPost]
+public async Task<ActionResult<ToDo>> AddToDo(AddToDoDto addToDo)
+{
+  _logger.LogInformation($"API: AddToDo called with ToDo Name {addToDo.Name}");
+
+  var toDo = await _toDoService.AddToDo(addToDo);
+
+  return CreatedAtAction(nameof(AddToDo), new { id = toDo.Id }, toDo);
+}
+```
+
+## Orchestrate Services with Docker Compoe
+
+Docker Compose simplifies managing multiple containerized applications. We'll orchestrate four services:
+- Backend (current article)
+- Frontend ([previous article]())
+- PostgreSQL Database
+- PGAdmin Database Management
+
+Create a `docker-compose.yml` file:
+```yaml
+services:
+  todo:
+    build:
+      context: ../react-18-todo-list
+      dockerfile: Dockerfile
+    container_name: todo
+    ports:
+      - 5173:5173
+
+  todo-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todo-api
+    ports:
+      - 5277:5277
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16.4
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - 8080:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+```
+
+Start the services:
+```bash
+docker compose up -d
+````
+
+Initially, the database is empty. We'll apply migrations to create database tables:
+```bash
+# Export environment variables
+export ASPNETCORE_POSTGRES_PORT=5432
+export ASPNETCORE_POSTGRES_HOST=localhost
+export ASPNETCORE_POSTGRES_DATABASE=postgres
+export ASPNETCORE_POSTGRES_USER=postgres
+export ASPNETCORE_POSTGRES_PASSWORD=postgres
+# Create migration
+dotnet ef migrations add InitialMigration
+# Apply migration
+dotnet ef database update
+```
+
+Visit the client application at `http://localhost:5173`. Verify the database via PGAdmin at `http://localhost:8080` using the provided credentials.
+
+## Conclusion
+
+We've successfully integrated PostgreSQL with an ASP.NET Core REST API and orchestrated our application with Docker Compose. Your application now supports persistent data storage.

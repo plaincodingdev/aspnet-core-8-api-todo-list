@@ -19,7 +19,8 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "http://*:5277",
         "ASPNETCORE_POSTGRES_PORT": "5432",
-        "ASPNETCORE_POSTGRES_HOST": "postgres",
+        "ASPNETCORE_POSTGRES_HOST": "localhost",
+        "ASPNETCORE_POSTGRES_DATABASE": "postgres",
         "ASPNETCORE_POSTGRES_USER": "postgres",
         "ASPNETCORE_POSTGRES_PASSWORD": "postgres",
       }
