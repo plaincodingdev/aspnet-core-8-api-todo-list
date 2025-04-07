@@ -1,6 +1,6 @@
 ---
-title: "Extending ASP.NET Core REST API with PostgreSQL and Docker Compose"
-excerpt: "Learn how to seamlessly integrate PostgreSQL with your ASP.NET Core REST API and orchestrate services using Docker Compose."
+title: "Extending ASP.NET Core 8 REST API with PostgreSQL 16 and Docker Compose"
+excerpt: "Learn how to seamlessly integrate PostgreSQL 16 with your ASP.NET Core 8 REST API and orchestrate services using Docker Compose."
 date: "2025-04-06"
 author: "Martin"
 readingTime: "7"
@@ -13,11 +13,11 @@ Before beginning, ensure the following software is installed on your system. The
 
 - **.NET Core SDK:** Enables application development with ASP.NET Core.
 - **Docker:** A platform for building, shipping, and running applications in containers.
-- **Source Code:** Available on [GitHub]().
+- **Source Code:** Available on [GitHub](https://github.com/plaincodingdev/aspnet-core-8-api-todo-list).
 
 ## Extending the Existing Project
 
-In our [previous article](), we created a simple REST API with ASP.NET Core using in-memory data storage. Now, we'll enhance the project by integrating PostgreSQL as our database. Additionally, we'll use Docker Compose to orchestrate our backend, database, and the previously created [client application]().
+In our [previous article](https://www.plaincoding.dev/asp-net-core-8-web-api-and-docker-a-beginner-s-guide-to-building-a-simple-todo-application), we created a simple REST API with ASP.NET Core using in-memory data storage. Now, we'll enhance the project by integrating PostgreSQL as our database. Additionally, we'll use Docker Compose to orchestrate our backend, database, and the previously created [client application](https://www.plaincoding.dev/building-a-simple-todo-app-with-react-18-typescript-and-docker-a-beginner-s-guide).
 
 ## Adding Enitity Framework Core
 
@@ -154,7 +154,7 @@ public async Task<ActionResult<ToDo>> AddToDo(AddToDoDto addToDo)
 
 Docker Compose simplifies managing multiple containerized applications. We'll orchestrate four services:
 - Backend (current article)
-- Frontend ([previous article]())
+- Frontend ([previous article](https://www.plaincoding.dev/building-a-simple-todo-app-with-react-18-typescript-and-docker-a-beginner-s-guide))
 - PostgreSQL Database
 - PGAdmin Database Management
 
